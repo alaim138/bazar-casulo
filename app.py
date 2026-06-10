@@ -29,7 +29,7 @@ def realizar_backup():
 # --- INTERFACE ---
 st.title("📱 Sistema de Vendas e Caixa")
 
- menu = ["Nova Venda", "Dar Baixa (Pagamentos)", "Registro Geral / PDF"]
+menu = ["Nova Venda", "Dar Baixa (Pagamentos)", "Registro Geral / PDF"]
 choice = st.sidebar.selectbox("Menu", menu)
 
 # --- 1. NOVA VENDA ---
