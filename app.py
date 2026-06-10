@@ -70,22 +70,41 @@ if choice == "Nova Venda":
 elif choice == "Dar Baixa (Pagamentos)":
     st.subheader("💳 Baixa em Pagamentos")
     
-    query = '''SELECT vendas.id, clientes.nome, vendas.valor, Bureau.data 
-               FROM vendas JOIN clientes ON vendas.telefone = clientes.telefone 
-               WHERE vendas.status = 'Pendente' '''
-    df_pendentes = pd.read_sql_query(query, conn)
+    # Busca simplificada para evitar conflito de colunas
+    query = '''SELECT vendas.id, clientes.nome, vendas.valor, vendas.data 
+               FROM vendas 
+               INNER JOIN clientes ON vendas.telefone = clientes.telefone 
+               WHERE vendas.status = 'Pendente''''
     
-    if not df_pendentes.empty:
-        st.dataframe(df_pendentes[['nome', 'valor']])
+    try:
+        df_pendentes = pd.read_sql_query(query, conn)
         
-        venda_id = st.number_input("Digite o ID da venda para dar baixa:", min_value=1, step=1)
-        if st.button("Confirmar Recebimento"):
-            c.execute("UPDATE vendas SET status = 'Pago' WHERE id = ?", (venda_id,))
+        if not df_pendentes.empty:
+            # Renomeia as colunas apenas para exibição bonita na tela
+            df_exibir = df_pendentes.rename(columns={
+                'id': 'ID da Venda',
+                'nome': 'Nome do Cliente',
+                'valor': 'Valor (R$)',
+                'data': 'Data/Hora'
+            })
+            st.dataframe(df_exibir)
+            
+            venda_id = st.number_input("Digite o ID da venda para dar baixa:", min_value=1, step=1)
+            if st.button("Confirmar Recebimento"):
+                c.execute("UPDATE vendas SET status = 'Pago' WHERE id = ?", (venda_id,))
+                conn.commit()
+                st.success("Pagamento registrado com sucesso!")
+                st.rerun() # Atualiza a tela automaticamente
+        else:
+            st.info("Não há contas pendentes no momento.")
+            
+    except Exception as e:
+        st.error("Erro ao carregar os dados. O banco de dados pode estar desalinhado.")
+        if st.button("Recriar Tabelas do Banco (Limpar Erros)"):
+            c.execute('''CREATE TABLE IF NOT EXISTS vendas 
+                         (id INTEGER PRIMARY KEY AUTOINCREMENT, telefone TEXT, valor REAL, status TEXT, data TEXT)''')
             conn.commit()
-            st.success("Pagamento registrado com sucesso!")
-            realizar_backup()
-    else:
-        st.info("Não há contas pendentes no momento.")
+            st.rerun()
 
 # --- 3. REGISTRO GERAL E FECHAMENTO ---
 elif choice == "Registro Geral / PDF":
